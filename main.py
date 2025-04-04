@@ -212,6 +212,9 @@ def handle_pomodoro(message):
     print("[LOG] Таймер запущен на 30 минут")
     timer.start()
 
+import socket
+print(f"[DEBUG] Bot started on host: {socket.gethostname()}")
+
 # --- Запуск ---
 print("Bot is running...")
 bot.infinity_polling()
