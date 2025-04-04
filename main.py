@@ -29,6 +29,7 @@ def save_data():
 # --- Активные таймеры ---
 timers = {}
 start_times = {}
+
 # --- Обработка команды /start ---
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
@@ -121,44 +122,45 @@ def send_reward(user_id):
         else:
             bot.send_message(user_id, "🎯 Помидор завершён! Но у тебя нет средних наград 😅 Добавь их с помощью /addreward.")
         data["mid"] = 0
+
     elif data["base"] % 3 == 0:
         rewards = data["rewards"]["basic"]
         if rewards:
             reward = random.choice(rewards)
             bot.send_message(user_id, f"🚀 Помидор завершён! Твоя базовая награда: {reward}")
             print(f"[LOG] Базовая награда: {reward}")
+        else:
+            bot.send_message(user_id, "🚀 Помидор завершён! Но у тебя нет базовых наград 😅 Добавь их с помощью /addreward.")
     else:
-        bot.send_message(user_id, "🚀 Помидор завершён! Но у тебя нет базовых наград 😅 Добавь их с помощью /addreward.")
-else:
-    bot.send_message(user_id, "✅ Помидор завершён! Продолжай в том же духе 💪")
-    print("[LOG] Награда не выдана (не кратно 3, не достигнуты пороги)")
+        bot.send_message(user_id, "✅ Помидор завершён! Продолжай в том же духе 💪")
+        print("[LOG] Награда не выдана (не кратно 3, не достигнуты пороги)")
 
-save_data()
+    save_data()
 
 # --- Команда /addreward ---
 @bot.message_handler(commands=['addreward'])
 def handle_addreward(message):
-user_id = str(message.chat.id)
-parts = message.text.split(maxsplit=2)
+    user_id = str(message.chat.id)
+    parts = message.text.split(maxsplit=2)
 
-if len(parts) < 3:
-    bot.reply_to(message, "Формат: /addreward [basic|medium|super] [текст награды]")
-    return
+    if len(parts) < 3:
+        bot.reply_to(message, "Формат: /addreward [basic|medium|super] [текст награды]")
+        return
 
-category = parts[1].lower()
-reward_text = parts[2].strip()
+    category = parts[1].lower()
+    reward_text = parts[2].strip()
 
-if category not in ["basic", "medium", "super"]:
-    bot.reply_to(message, "Категория должна быть: basic, medium или super.")
-    return
+    if category not in ["basic", "medium", "super"]:
+        bot.reply_to(message, "Категория должна быть: basic, medium или super.")
+        return
 
-if user_id not in user_data:
-    bot.reply_to(message, "Сначала напиши /start, чтобы я тебя запомнил.")
-    return
+    if user_id not in user_data:
+        bot.reply_to(message, "Сначала напиши /start, чтобы я тебя запомнил.")
+        return
 
-user_data[user_id]["rewards"][category].append(reward_text)
-save_data()
-bot.reply_to(message, f"✅ Награда добавлена в список {category}!")
+    user_data[user_id]["rewards"][category].append(reward_text)
+    save_data()
+    bot.reply_to(message, f"✅ Награда добавлена в список {category}!")
 
 # --- Команда /listrewards ---
 @bot.message_handler(commands=['listrewards'])
