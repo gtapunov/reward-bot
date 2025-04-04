@@ -121,13 +121,12 @@ def send_reward(user_id):
         else:
             bot.send_message(user_id, "🎯 Помидор завершён! Но у тебя нет средних наград 😅 Добавь их с помощью /addreward.")
         data["mid"] = 0
-
-elif data["base"] % 3 == 0:
-    rewards = data["rewards"]["basic"]
-    if rewards:
-        reward = random.choice(rewards)
-        bot.send_message(user_id, f"🚀 Помидор завершён! Твоя базовая награда: {reward}")
-        print(f"[LOG] Базовая награда: {reward}")
+    elif data["base"] % 3 == 0:
+        rewards = data["rewards"]["basic"]
+        if rewards:
+            reward = random.choice(rewards)
+            bot.send_message(user_id, f"🚀 Помидор завершён! Твоя базовая награда: {reward}")
+            print(f"[LOG] Базовая награда: {reward}")
     else:
         bot.send_message(user_id, "🚀 Помидор завершён! Но у тебя нет базовых наград 😅 Добавь их с помощью /addreward.")
 else:
