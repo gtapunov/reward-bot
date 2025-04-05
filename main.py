@@ -1,35 +1,43 @@
 import os
-import json
 from flask import Flask, request
 import telebot
+from telebot import types
 from dotenv import load_dotenv
 
-# Load environment variables
+# Загружаем переменные окружения
 load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")
+BASE_URL = os.getenv("BASE_URL")
 
-# Flask app
-app = Flask(__name__)
+# Инициализируем Flask и TeleBot
 bot = telebot.TeleBot(TOKEN)
+app = Flask(__name__)
 
-# Flask route for Telegram webhook
+# Обработка Webhook-запросов от Telegram
 @app.route(f"/{TOKEN}", methods=["POST"])
 def webhook():
-    json_str = request.get_data().decode("utf-8")
+    print("✅ Получен запрос от Telegram")
+    json_str = request.get_data().decode('utf-8')
     update = telebot.types.Update.de_json(json_str)
     bot.process_new_updates([update])
-    return "", 200
+    return '', 200
 
-# Simple route to check if the app is alive
+# Простая GET-проверка
 @app.route("/", methods=["GET"])
 def index():
-    return "✅ Bot is running", 200
+    return "✅ Rewardy работает через Flask + webhook", 200
 
-# Example command
+# Команды
 @bot.message_handler(commands=["start"])
 def start(message):
-    bot.send_message(message.chat.id, "Привет! Я жив и работаю через webhook 🙌")
+    bot.send_message(message.chat.id, "Привет! Это Rewardy — твой бот для наград.")
 
-# Set webhook
+@bot.message_handler(commands=["help"])
+def help(message):
+    bot.send_message(message.chat.id, "Доступные команды: /start /help")
+
+# Устанавливаем webhook
 bot.remove_webhook()
-bot.set_webhook(url=f"https://reward-bot-fpli.onrender.com/{TOKEN}")
+webhook_url = f"{BASE_URL}/{TOKEN}"
+print(f"📡 Устанавливаю webhook: {webhook_url}")
+bot.set_webhook(url=webhook_url)
