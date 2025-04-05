@@ -1,54 +1,47 @@
 import telebot
 from telebot import types
+from flask import Flask, request
 import json
 import os
 import random
 import openai
-
-# Load environment variables
 from dotenv import load_dotenv
+
 load_dotenv()
 
 TOKEN = os.getenv("BOT_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-openai.api_key = OPENAI_API_KEY
+WEBHOOK_SECRET = os.getenv("WEBHOOK_SECRET", "rewardy")  # optional for security
 
-bot = telebot.TeleBot(TOKEN)
+oai_key_missing = not OPENAI_API_KEY
+if not oai_key_missing:
+    openai.api_key = OPENAI_API_KEY
 
-# Load user data
-try:
-    with open("user_data.json", "r", encoding="utf-8") as f:
-        user_data = json.load(f)
-except FileNotFoundError:
-    user_data = {}
+bot = telebot.TeleBot(TOKEN, threaded=False)
+app = Flask(__name__)
 
-CATEGORY_MAP = {
-    "Базовая": "basic",
-    "Средняя": "medium",
-    "Суперприз": "super"
-}
+user_data = {}
+CATEGORY_MAP = {"Базовая": "basic", "Средняя": "medium", "Суперприз": "super"}
+CATEGORY_EMOJIS = {"basic": "🔹 Basic:", "medium": "🔹 Medium:", "super": "🔹 Super:"}
 
-CATEGORY_EMOJIS = {
-    "basic": "🔹 Basic:",
-    "medium": "🔹 Medium:",
-    "super": "🔹 Super:"
-}
-
-# Save user data
 def save_user_data():
     with open("user_data.json", "w", encoding="utf-8") as f:
         json.dump(user_data, f, ensure_ascii=False, indent=2)
 
-# Start command
+def load_user_data():
+    global user_data
+    try:
+        with open("user_data.json", "r", encoding="utf-8") as f:
+            user_data = json.load(f)
+    except FileNotFoundError:
+        user_data = {}
+
+load_user_data()
+
 @bot.message_handler(commands=['start'])
 def start(message):
-    user_id = str(message.from_user.id)
-    if user_id not in user_data:
-        user_data[user_id] = {}
-    save_user_data()
     bot.reply_to(message, "Привет! Я бот-награда! Используй /addreward чтобы добавить награду.")
 
-# Add reward command
 @bot.message_handler(commands=['addreward'])
 def add_reward(message):
     markup = types.InlineKeyboardMarkup()
@@ -56,13 +49,12 @@ def add_reward(message):
         markup.add(types.InlineKeyboardButton(text=label, callback_data=f"select_category:{label}"))
     bot.send_message(message.chat.id, "Выбери категорию награды:", reply_markup=markup)
 
-# Category selected
 @bot.callback_query_handler(func=lambda call: call.data.startswith("select_category:"))
 def handle_category_selection(call):
-    category_label = call.data.split(":")[1]
+    label = call.data.split(":")[1]
     user_id = str(call.from_user.id)
     user_data[user_id] = user_data.get(user_id, {})
-    user_data[user_id]["selected_category"] = CATEGORY_MAP.get(category_label, "basic")
+    user_data[user_id]["selected_category"] = CATEGORY_MAP[label]
 
     markup = types.InlineKeyboardMarkup()
     markup.add(
@@ -73,7 +65,6 @@ def handle_category_selection(call):
                           text="Хочешь задать награду сам или получить варианты от ИИ?",
                           reply_markup=markup)
 
-# Manual or AI reward generation
 @bot.callback_query_handler(func=lambda call: call.data in ["manual", "ai"])
 def handle_reward_option(call):
     user_id = str(call.from_user.id)
@@ -87,17 +78,16 @@ def handle_reward_option(call):
     else:
         send_ai_suggestions(call.message)
 
-# Generate AI suggestions
 def generate_ai_rewards():
+    if oai_key_missing:
+        raise Exception("OpenAI API key missing.")
     prompt = "Придумай 3 короткие награды, которые человек может себе позволить после фокус-сессии. Примеры: 'чашка кофе', '10 минут музыки', 'отдых с котом'. Только список, без пояснений."
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=[{"role": "user", "content": prompt}]
     )
-    text = response.choices[0].message["content"].strip()
-    return text.split("\n")
+    return [line.strip("- ") for line in response.choices[0].message["content"].strip().split("\n") if line.strip()]
 
-# Send 3 suggestions and save to user_data
 ai_suggestions = {}
 
 def send_ai_suggestions(message):
@@ -113,20 +103,17 @@ def send_ai_suggestions(message):
             reply += f"{i}. {s}\n"
 
         markup = types.InlineKeyboardMarkup(row_width=3)
-        buttons = [
+        markup.add(
             types.InlineKeyboardButton("1", callback_data="select_1"),
             types.InlineKeyboardButton("2", callback_data="select_2"),
-            types.InlineKeyboardButton("3", callback_data="select_3"),
-            types.InlineKeyboardButton("🔄 Ещё", callback_data="more")
-        ]
-        markup.add(*buttons[:3])
-        markup.add(buttons[3])
+            types.InlineKeyboardButton("3", callback_data="select_3")
+        )
+        markup.add(types.InlineKeyboardButton("\ud83d\udd04 Ещё", callback_data="more"))
 
         bot.send_message(message.chat.id, reply, reply_markup=markup)
     except Exception as e:
-        bot.send_message(message.chat.id, "Произошла ошибка при генерации наград: " + str(e))
+        bot.send_message(message.chat.id, f"Произошла ошибка при генерации наград: {e}")
 
-# Handle AI choice or 'more'
 @bot.callback_query_handler(func=lambda call: call.data.startswith("select_") or call.data == "more")
 def handle_ai_choice(call):
     user_id = str(call.from_user.id)
@@ -135,7 +122,7 @@ def handle_ai_choice(call):
         return
 
     index = int(call.data[-1]) - 1
-    reward = ai_suggestions.get(user_id, [])[index]
+    reward = ai_suggestions.get(user_id, [None, None, None])[index]
     category = user_data.get(user_id, {}).get("selected_category", "basic")
 
     user_data[user_id].setdefault("rewards", {})
@@ -143,9 +130,8 @@ def handle_ai_choice(call):
     save_user_data()
 
     bot.delete_message(call.message.chat.id, call.message.message_id)
-    bot.send_message(call.message.chat.id, f"✅ Награда сохранена: {reward}")
+    bot.send_message(call.message.chat.id, f"\u2705 Награда сохранена: {reward}")
 
-# Save manually entered reward
 @bot.message_handler(func=lambda msg: msg.text.startswith("/addreward "))
 def save_manual_reward(message):
     user_id = str(message.from_user.id)
@@ -156,15 +142,13 @@ def save_manual_reward(message):
     user_data[user_id]["rewards"].setdefault(category, []).append(reward_text)
     save_user_data()
 
-    bot.reply_to(message, f"✅ Награда сохранена: {reward_text}")
+    bot.reply_to(message, f"\u2705 Награда сохранена: {reward_text}")
 
-# List rewards
 @bot.message_handler(commands=["listrewards"])
 def list_rewards(message):
     user_id = str(message.from_user.id)
     rewards = user_data.get(user_id, {}).get("rewards", {})
-
-    text = "🎁 Твои награды:\n"
+    text = "\ud83c\udff1 Твои награды:\n"
     for cat in ["basic", "medium", "super"]:
         text += f"\n{CATEGORY_EMOJIS[cat]}\n"
         entries = rewards.get(cat, [])
@@ -173,10 +157,18 @@ def list_rewards(message):
                 text += f"— {r}\n"
         else:
             text += "— пока пусто\n"
-
     bot.reply_to(message, text)
 
-# Run the bot
+@app.route(f"/{WEBHOOK_SECRET}", methods=["POST"])
+def webhook():
+    if request.headers.get('content-type') == 'application/json':
+        json_string = request.get_data().decode('utf-8')
+        update = telebot.types.Update.de_json(json_string)
+        bot.process_new_updates([update])
+        return '', 200
+    else:
+        return 'Invalid request', 400
+
 if __name__ == "__main__":
-    print("Bot is running...")
-    bot.infinity_polling()
+    print("Webhook app running...")
+    app.run(host="0.0.0.0", port=int(os.environ.get('PORT', 5000)))
