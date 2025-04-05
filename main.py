@@ -90,15 +90,19 @@ def handle_reward_option(call):
         temp_rewards[user_id] = suggestions
         show_ai_suggestions(call.message.chat.id, suggestions)
 
+client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
 def generate_ai_rewards():
-    prompt = "Придумай три коротких, приятных награды за фокус-сессию. Формат: 1. ... 2. ... 3. ..."
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": prompt}]
+    response = client.chat.completions.create(
+        messages=[
+            {"role": "system", "content": "Ты помощник, который генерирует простые награды за работу."},
+            {"role": "user", "content": "Придумай 3 приятных награды для пользователя, завершившего фокус-сессию."}
+        ],
+        model="gpt-3.5-turbo"
     )
-    text = response.choices[0].message['content']
-    lines = [line.strip()[3:].strip() for line in text.splitlines() if line.strip().startswith(tuple("123"))]
-    return lines[:3]
+    rewards_text = response.choices[0].message.content.strip()
+    suggestions = [r.strip("-• ") for r in rewards_text.split("\n") if r.strip()]
+    return suggestions
 
 def show_ai_suggestions(chat_id, options):
     markup = InlineKeyboardMarkup()
