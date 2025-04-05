@@ -42,6 +42,10 @@ def save_user_data():
 # Start command
 @bot.message_handler(commands=['start'])
 def start(message):
+    user_id = str(message.from_user.id)
+    if user_id not in user_data:
+        user_data[user_id] = {}
+    save_user_data()
     bot.reply_to(message, "Привет! Я бот-награда! Используй /addreward чтобы добавить награду.")
 
 # Add reward command
@@ -58,7 +62,7 @@ def handle_category_selection(call):
     category_label = call.data.split(":")[1]
     user_id = str(call.from_user.id)
     user_data[user_id] = user_data.get(user_id, {})
-    user_data[user_id]["selected_category"] = CATEGORY_MAP[category_label]
+    user_data[user_id]["selected_category"] = CATEGORY_MAP.get(category_label, "basic")
 
     markup = types.InlineKeyboardMarkup()
     markup.add(
@@ -131,7 +135,7 @@ def handle_ai_choice(call):
         return
 
     index = int(call.data[-1]) - 1
-    reward = ai_suggestions[user_id][index]
+    reward = ai_suggestions.get(user_id, [])[index]
     category = user_data.get(user_id, {}).get("selected_category", "basic")
 
     user_data[user_id].setdefault("rewards", {})
@@ -173,4 +177,6 @@ def list_rewards(message):
     bot.reply_to(message, text)
 
 # Run the bot
-bot.infinity_polling()
+if __name__ == "__main__":
+    print("Bot is running...")
+    bot.infinity_polling()
