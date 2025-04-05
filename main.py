@@ -20,15 +20,6 @@ def receive_update():
     bot.process_new_updates([update])
     return '', 200
 
-# ========== БАЗОВЫЕ КОМАНДЫ ==========
-@bot.message_handler(commands=['start'])
-def start_message(message):
-    bot.send_message(message.chat.id, "Привет! Это Rewardy — твой бот для наград.")
-
-@bot.message_handler(commands=['help'])
-def help_message(message):
-    bot.send_message(message.chat.id, "Доступные команды: /start /help /addreward /listrewards")
-
 # ========== ВСТАВЬ СЮДА ВСЮ ТВОЮ ЛОГИКУ REWARDY ========== #
 try:
     with open("user_data.json", "r", encoding="utf-8") as f:
@@ -58,8 +49,8 @@ def start(message):
     bot.reply_to(message, "Привет! Я бот-награда! Используй /addreward чтобы добавить награду.")
 
 @bot.message_handler(commands=['help'])
-def help_command(message):
-    bot.reply_to(message, "Я помогаю тебе награждать себя после фокус-сессий! Используй /addreward.")
+def help_message(message):
+    bot.send_message(message.chat.id, "Доступные команды: /start /help /addreward /listrewards")
 
 @bot.message_handler(commands=['listrewards'])
 def list_rewards(message):
