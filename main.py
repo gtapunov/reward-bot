@@ -171,3 +171,7 @@ def handle_ai_choice(call):
 # ========== УСТАНОВКА WEBHOOK ==========
 bot.remove_webhook()
 bot.set_webhook(url=f"https://reward-bot-fpli.onrender.com/{TOKEN}")
+
+@app.route("/", methods=["GET"])
+def index():
+    return "Rewardy bot is alive!", 200
