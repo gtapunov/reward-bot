@@ -18,7 +18,7 @@ API_TOKEN = os.environ.get("BOT_TOKEN")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
 bot = telebot.TeleBot(API_TOKEN)
-openai.api_key = OPENAI_API_KEY
+openai_client = openai.OpenAI(api_key=OPENAI_API_KEY)
 
 # --- Счётчики пользователей и награды ---
 try:
@@ -58,6 +58,17 @@ def send_welcome(message):
 @bot.message_handler(commands=['addreward'])
 def handle_addreward(message):
     user_id = str(message.chat.id)
+    if user_id not in user_data:
+        user_data[user_id] = {
+            "base": 0,
+            "mid": 0,
+            "super": 0,
+            "rewards": {
+                "basic": [],
+                "medium": [],
+                "super": []
+            }
+        }
     markup = InlineKeyboardMarkup()
     markup.row(
         InlineKeyboardButton("Базовая", callback_data="cat_basic"),
@@ -68,8 +79,19 @@ def handle_addreward(message):
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("cat_"))
 def select_reward_method(call):
-    category = call.data.split("_")[1]
     user_id = str(call.message.chat.id)
+    if user_id not in user_data:
+        user_data[user_id] = {
+            "base": 0,
+            "mid": 0,
+            "super": 0,
+            "rewards": {
+                "basic": [],
+                "medium": [],
+                "super": []
+            }
+        }
+    category = call.data.split("_")[1]
     user_data[user_id]["selected_category"] = category
     markup = InlineKeyboardMarkup()
     markup.row(
@@ -81,6 +103,17 @@ def select_reward_method(call):
 @bot.callback_query_handler(func=lambda call: call.data in ["manual", "ai"])
 def handle_reward_option(call):
     user_id = str(call.message.chat.id)
+    if user_id not in user_data:
+        user_data[user_id] = {
+            "base": 0,
+            "mid": 0,
+            "super": 0,
+            "rewards": {
+                "basic": [],
+                "medium": [],
+                "super": []
+            }
+        }
     category = user_data[user_id].get("selected_category")
     if call.data == "manual":
         bot.send_message(call.message.chat.id, f"Напиши текст награды для категории {category}:")
@@ -90,19 +123,17 @@ def handle_reward_option(call):
         temp_rewards[user_id] = suggestions
         show_ai_suggestions(call.message.chat.id, suggestions)
 
-client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
 def generate_ai_rewards():
-    response = client.chat.completions.create(
+    response = openai_client.chat.completions.create(
         messages=[
             {"role": "system", "content": "Ты помощник, который генерирует простые награды за работу."},
-            {"role": "user", "content": "Придумай 3 приятных награды для пользователя, завершившего фокус-сессию."}
+            {"role": "user", "content": "Придумай 3 приятных награды для пользователя, завершившего фокус-сессию. Выведи их в формате: 1. ... 2. ... 3. ..."}
         ],
         model="gpt-3.5-turbo"
     )
     rewards_text = response.choices[0].message.content.strip()
-    suggestions = [r.strip("-• ") for r in rewards_text.split("\n") if r.strip()]
-    return suggestions
+    suggestions = [r.strip("-• 1234567890.") for r in rewards_text.split("\n") if r.strip()]
+    return suggestions[:3]
 
 def show_ai_suggestions(chat_id, options):
     markup = InlineKeyboardMarkup()
@@ -117,6 +148,8 @@ def show_ai_suggestions(chat_id, options):
 @bot.callback_query_handler(func=lambda call: call.data.startswith("pick_"))
 def handle_pick_reward(call):
     user_id = str(call.message.chat.id)
+    if user_id not in user_data:
+        return
     idx = int(call.data.split("_")[1])
     category = user_data[user_id].get("selected_category")
     reward = temp_rewards.get(user_id, [])[idx]
