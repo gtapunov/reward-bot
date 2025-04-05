@@ -1,24 +1,35 @@
-import telebot
-from telebot import types
-import json
 import os
-import random
-import openai
+import telebot
 from flask import Flask, request
+from telebot import types
 from dotenv import load_dotenv
 
+# Load .env
 load_dotenv()
-
 TOKEN = os.getenv("BOT_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-BASE_URL = os.getenv("BASE_URL")  # e.g. https://reward-bot-xxxxx.onrender.com
 
 bot = telebot.TeleBot(TOKEN)
-openai.api_key = OPENAI_API_KEY
-
 app = Flask(__name__)
 
-# User data storage
+# Flask route for Telegram webhook
+@app.route(f'/{TOKEN}', methods=['POST'])
+def receive_update():
+    json_str = request.get_data().decode('UTF-8')
+    update = telebot.types.Update.de_json(json_str)
+    bot.process_new_updates([update])
+    return '', 200
+
+# ========== БАЗОВЫЕ КОМАНДЫ ==========
+@bot.message_handler(commands=['start'])
+def start_message(message):
+    bot.send_message(message.chat.id, "Привет! Это Rewardy — твой бот для наград.")
+
+@bot.message_handler(commands=['help'])
+def help_message(message):
+    bot.send_message(message.chat.id, "Доступные команды: /start /help /addreward /listrewards")
+
+# ========== ВСТАВЬ СЮДА ВСЮ ТВОЮ ЛОГИКУ REWARDY ========== #
 try:
     with open("user_data.json", "r", encoding="utf-8") as f:
         user_data = json.load(f)
@@ -165,10 +176,6 @@ def handle_ai_choice(call):
     bot.delete_message(call.message.chat.id, call.message.message_id)
     bot.send_message(call.message.chat.id, f"✅ Награда сохранена: {reward}")
 
-# Установим webhook
+# ========== УСТАНОВКА WEBHOOK ==========
 bot.remove_webhook()
-bot.set_webhook(url=f"{BASE_URL}/{TOKEN}")
-
-# Для запуска на Render (если запускается как web app)
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+bot.set_webhook(url=f"https://reward-bot-fpli.onrender.com/{TOKEN}")
