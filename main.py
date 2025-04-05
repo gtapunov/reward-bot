@@ -52,14 +52,6 @@ def save_user_data():
     with open("user_data.json", "w", encoding="utf-8") as f:
         json.dump(user_data, f, ensure_ascii=False, indent=2)
 
-# Flask route
-@app.route(f"/{TOKEN}", methods=["POST"])
-def receive_update():
-    json_str = request.get_data().decode("utf-8")
-    update = telebot.types.Update.de_json(json_str)
-    bot.process_new_updates([update])
-    return "", 200
-
 # Команды
 @bot.message_handler(commands=['start'])
 def start(message):
