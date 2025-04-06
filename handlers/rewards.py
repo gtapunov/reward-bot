@@ -2,6 +2,7 @@ from telebot.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, C
 import openai
 import os
 import json
+import re
 from storage import save_user_data
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -76,7 +77,7 @@ def register_reward_handlers(bot, user_data):
                 messages=[{"role": "user", "content": prompt}]
             )
             raw_lines = response.choices[0].message["content"].strip().split("\n")
-            suggestions = [line.lstrip("0123456789. ").strip() for line in raw_lines if line.strip()]
+            suggestions = [re.sub(r"^\d+\.\s*", "", line).strip() for line in raw_lines if line.strip()]
             ai_suggestions[user_id] = suggestions
 
             text = "\n".join(f"{i+1}. {s}" for i, s in enumerate(suggestions))
