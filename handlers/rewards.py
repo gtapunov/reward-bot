@@ -2,6 +2,7 @@ from telebot.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, C
 import openai
 import os
 import json
+from storage import save_user_data
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
@@ -55,7 +56,7 @@ def register_reward_handlers(bot, user_data):
         category = user_data[user_id]["selected_category"]
         reward = message.text.strip()
         user_data[user_id].setdefault("rewards", {}).setdefault(category, []).append(reward)
-        save_user_data()
+        save_user_data(user_data)
         bot.reply_to(message, f"✅ Награда сохранена: {reward}")
 
     def send_ai_suggestions(message: Message):
@@ -90,5 +91,5 @@ def register_reward_handlers(bot, user_data):
         reward = ai_suggestions[user_id][index]
         category = user_data[user_id]["selected_category"]
         user_data[user_id].setdefault("rewards", {}).setdefault(category, []).append(reward)
-        save_user_data()
+        save_user_data(user_data)
         bot.send_message(call.message.chat.id, f"✅ Награда сохранена: {reward}")
