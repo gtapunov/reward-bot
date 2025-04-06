@@ -15,7 +15,7 @@ CATEGORY_MAP = {
 def register_reward_handlers(bot, user_data):
     ai_suggestions = {}
 
-    def save_user_data():
+    def save_user_data_local():
         with open("user_data.json", "w", encoding="utf-8") as f:
             json.dump(user_data, f, ensure_ascii=False, indent=2)
 
@@ -32,7 +32,7 @@ def register_reward_handlers(bot, user_data):
         user_id = str(call.from_user.id)
         user_data[user_id] = user_data.get(user_id, {})
         user_data[user_id]["selected_category"] = CATEGORY_MAP[category_label]
-        save_user_data()
+        save_user_data(user_data)
 
         markup = InlineKeyboardMarkup()
         markup.add(
@@ -98,11 +98,11 @@ def register_reward_handlers(bot, user_data):
     def list_rewards(message: Message):
         user_id = str(message.from_user.id)
         rewards = user_data.get(user_id, {}).get("rewards", {})
-    
-        if not rewards:
+
+        if not rewards or all(len(rewards.get(cat, [])) == 0 for cat in ["basic", "medium", "super"]):
             bot.reply_to(message, "У тебя пока нет наград. Добавь их через /addreward")
             return
-    
+
         text = "🎁 Твои награды:\n"
         for cat in ["basic", "medium", "super"]:
             entries = rewards.get(cat, [])
@@ -116,4 +116,3 @@ def register_reward_handlers(bot, user_data):
                 for i, r in enumerate(entries, 1):
                     text += f"{i}. {r}\n"
         bot.reply_to(message, text)
-
