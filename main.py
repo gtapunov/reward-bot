@@ -20,7 +20,7 @@ bot.remove_webhook()
 user_data = load_user_data()
 
 # Регистрируем обработчики
-register_command_handlers(bot)
+register_command_handlers(bot, user_data)
 register_timer_handlers(bot, user_data)
 register_reward_handlers(bot, user_data)
 
