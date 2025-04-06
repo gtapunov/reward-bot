@@ -12,10 +12,16 @@ CATEGORY_MAP = {
     "Суперприз": "super"
 }
 
+CATEGORY_LABELS = {
+    "basic": "Базовые",
+    "medium": "Средние",
+    "super": "Суперпризы"
+}
+
 def register_reward_handlers(bot, user_data):
     ai_suggestions = {}
 
-    def save_user_data_local():
+    def save_user_data():
         with open("user_data.json", "w", encoding="utf-8") as f:
             json.dump(user_data, f, ensure_ascii=False, indent=2)
 
@@ -32,7 +38,7 @@ def register_reward_handlers(bot, user_data):
         user_id = str(call.from_user.id)
         user_data[user_id] = user_data.get(user_id, {})
         user_data[user_id]["selected_category"] = CATEGORY_MAP[category_label]
-        save_user_data(user_data)
+        save_user_data()
 
         markup = InlineKeyboardMarkup()
         markup.add(
@@ -99,7 +105,7 @@ def register_reward_handlers(bot, user_data):
         user_id = str(message.from_user.id)
         rewards = user_data.get(user_id, {}).get("rewards", {})
 
-        if not rewards or all(len(rewards.get(cat, [])) == 0 for cat in ["basic", "medium", "super"]):
+        if not rewards:
             bot.reply_to(message, "У тебя пока нет наград. Добавь их через /addreward")
             return
 
@@ -107,12 +113,11 @@ def register_reward_handlers(bot, user_data):
         for cat in ["basic", "medium", "super"]:
             entries = rewards.get(cat, [])
             if entries:
-                pretty_cat = {
-                    "basic": "Базовые",
-                    "medium": "Средние",
-                    "super": "Суперпризы"
-                }[cat]
-                text += f"\n{pretty_cat}:\n"
+                label = CATEGORY_LABELS[cat]
+                text += f"\n{label}:\n"
                 for i, r in enumerate(entries, 1):
-                    text += f"{i}. {r}\n"
+                    clean = r.lstrip("1234567890. ").strip()
+                    text += f"{i}. {clean}\n"
+
         bot.reply_to(message, text)
+
