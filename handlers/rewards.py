@@ -93,3 +93,27 @@ def register_reward_handlers(bot, user_data):
         user_data[user_id].setdefault("rewards", {}).setdefault(category, []).append(reward)
         save_user_data(user_data)
         bot.send_message(call.message.chat.id, f"✅ Награда сохранена: {reward}")
+
+    @bot.message_handler(commands=["myrewards"])
+    def list_rewards(message: Message):
+        user_id = str(message.from_user.id)
+        rewards = user_data.get(user_id, {}).get("rewards", {})
+    
+        if not rewards:
+            bot.reply_to(message, "У тебя пока нет наград. Добавь их через /addreward")
+            return
+    
+        text = "🎁 Твои награды:\n"
+        for cat in ["basic", "medium", "super"]:
+            entries = rewards.get(cat, [])
+            if entries:
+                pretty_cat = {
+                    "basic": "Базовые",
+                    "medium": "Средние",
+                    "super": "Суперпризы"
+                }[cat]
+                text += f"\n{pretty_cat}:\n"
+                for i, r in enumerate(entries, 1):
+                    text += f"{i}. {r}\n"
+        bot.reply_to(message, text)
+
