@@ -9,3 +9,7 @@ def load_user_data():
     except (FileNotFoundError, JSONDecodeError):
         user_data = {}
     return user_data
+
+def save_user_data(data):
+    with open("user_data.json", "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
