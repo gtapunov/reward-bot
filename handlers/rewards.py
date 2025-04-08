@@ -115,7 +115,7 @@ def register_reward_handlers(bot, user_data):
             return
     
         reward = message.text.strip()
-        key = category if category == "super" else f"{category}_{subcategory}"
+        key = f"{category}_{subcategory}" if category != "super" else "super"
     
         user_data[user_id].setdefault("rewards", {})
         if key not in user_data[user_id]["rewards"] or not isinstance(user_data[user_id]["rewards"][key], list):
@@ -171,7 +171,7 @@ def register_reward_handlers(bot, user_data):
             bot.send_message(call.message.chat.id, "Ошибка: категория не указана.")
             return
     
-        key = category if category == "super" else f"{category}_{subcategory}"
+        key = f"{category}_{subcategory}" if category != "super" else "super"
     
         user_data[user_id].setdefault("rewards", {})
         if key not in user_data[user_id]["rewards"] or not isinstance(user_data[user_id]["rewards"][key], list):
