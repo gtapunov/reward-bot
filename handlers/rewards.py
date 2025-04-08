@@ -2,7 +2,6 @@ from telebot.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, C
 import openai
 import os
 import json
-import re
 from storage import save_user_data
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -10,21 +9,24 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 CATEGORY_MAP = {
     "Базовая": "basic",
     "Средняя": "medium",
-    "Суперприз": "super"
+    "Супернаграда": "super"
+}
+
+SUBCATEGORY_MAP = {
+    "Здоровая": "healthy",
+    "Дофаминовая": "dopamine"
 }
 
 CATEGORY_LABELS = {
-    "basic": "Базовые",
-    "medium": "Средние",
-    "super": "Суперпризы"
+    "basic_healthy": "Базовые (Здоровые)",
+    "basic_dopamine": "Базовые (Дофаминовые)",
+    "medium_healthy": "Средние (Здоровые)",
+    "medium_dopamine": "Средние (Дофаминовые)",
+    "super": "Супернаграды"
 }
 
 def register_reward_handlers(bot, user_data):
     ai_suggestions = {}
-
-    def save_user_data():
-        with open("user_data.json", "w", encoding="utf-8") as f:
-            json.dump(user_data, f, ensure_ascii=False, indent=2)
 
     @bot.message_handler(commands=["addreward"])
     def add_reward(message: Message):
@@ -37,16 +39,36 @@ def register_reward_handlers(bot, user_data):
     def handle_category_selection(call: CallbackQuery):
         category_label = call.data.split(":")[1]
         user_id = str(call.from_user.id)
+        category = CATEGORY_MAP[category_label]
         user_data[user_id] = user_data.get(user_id, {})
-        user_data[user_id]["selected_category"] = CATEGORY_MAP[category_label]
-        save_user_data()
+        user_data[user_id]["selected_category"] = category
+        save_user_data(user_data)
 
+        if category in ["basic", "medium"]:
+            markup = InlineKeyboardMarkup()
+            for sub in SUBCATEGORY_MAP:
+                markup.add(InlineKeyboardButton(sub, callback_data=f"subcategory:{sub}"))
+            bot.edit_message_text("Уточни категорию награды:", chat_id=call.message.chat.id, message_id=call.message.message_id, reply_markup=markup)
+        else:
+            show_input_method_selection(call.message)
+
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("subcategory:"))
+    def handle_subcategory_selection(call: CallbackQuery):
+        subcategory_label = call.data.split(":")[1]
+        user_id = str(call.from_user.id)
+        sub = SUBCATEGORY_MAP[subcategory_label]
+        category = user_data[user_id]["selected_category"]
+        user_data[user_id]["selected_category"] = f"{category}_{sub}"
+        save_user_data(user_data)
+        show_input_method_selection(call.message)
+
+    def show_input_method_selection(msg):
         markup = InlineKeyboardMarkup()
         markup.add(
-            InlineKeyboardButton("Добавить свою", callback_data="method:manual"),
-            InlineKeyboardButton("Получить идеи от ИИ", callback_data="method:ai")
+            InlineKeyboardButton("Задать самому", callback_data="method:manual"),
+            InlineKeyboardButton("Предложение от ИИ", callback_data="method:ai")
         )
-        bot.edit_message_text("Выбери способ добавления награды:", chat_id=call.message.chat.id, message_id=call.message.message_id, reply_markup=markup)
+        bot.send_message(msg.chat.id, "Выбери способ добавления награды:", reply_markup=markup)
 
     @bot.callback_query_handler(func=lambda call: call.data.startswith("method:"))
     def handle_method_selection(call: CallbackQuery):
@@ -77,7 +99,7 @@ def register_reward_handlers(bot, user_data):
                 messages=[{"role": "user", "content": prompt}]
             )
             raw_lines = response.choices[0].message["content"].strip().split("\n")
-            suggestions = [re.sub(r"^\d+\.\s*", "", line).strip() for line in raw_lines if line.strip()]
+            suggestions = [line.lstrip("0123456789. ").strip() for line in raw_lines if line.strip()]
             ai_suggestions[user_id] = suggestions
 
             text = "\n".join(f"{i+1}. {s}" for i, s in enumerate(suggestions))
@@ -112,14 +134,12 @@ def register_reward_handlers(bot, user_data):
             return
 
         text = "🎁 Твои награды:\n"
-        for cat in ["basic", "medium", "super"]:
+        for cat in ["basic_healthy", "basic_dopamine", "medium_healthy", "medium_dopamine", "super"]:
             entries = rewards.get(cat, [])
             if entries:
-                label = CATEGORY_LABELS[cat]
+                label = CATEGORY_LABELS.get(cat, cat)
                 text += f"\n{label}:\n"
                 for i, r in enumerate(entries, 1):
                     clean = r.lstrip("1234567890. ").strip()
                     text += f"{i}. {clean}\n"
-
         bot.reply_to(message, text)
-
