@@ -1,5 +1,6 @@
 from telebot.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 import openai
+import random
 import os
 import json
 from storage import save_user_data
@@ -204,3 +205,17 @@ def register_reward_handlers(bot, user_data):
                     clean = r.lstrip("1234567890. ").strip()
                     text += f"{i}. {clean}\n"
         bot.reply_to(message, text)
+
+def pick_random_reward(user_data, user_id, count):
+    """
+    Выбирает случайную награду в зависимости от номера помидора.
+    count — это номер текущего помидора (после увеличения счётчика).
+    """
+    category = "medium" if count % 4 == 0 else "basic"
+    sub = "healthy" if random.random() < 0.7 else "dopamine"
+    key = f"{category}_{sub}"
+
+    rewards = user_data.get(user_id, {}).get("rewards", {}).get(key, [])
+    if not rewards:
+        return None, category, sub
+    return random.choice(rewards), category, sub
