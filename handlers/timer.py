@@ -142,7 +142,7 @@ def register_timer_handlers(bot, user_data):
         user_data[user_id].pop("start_time", None)
         user_data[user_id]["pomodoro_count"] = 0  # сбрасываем
         save_user_data()
-    
+        
         bot.edit_message_text(
             "✅ Фокус-сессия завершена. Отличная работа!",
             chat_id=call.message.chat.id,
