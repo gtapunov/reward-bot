@@ -41,7 +41,7 @@ def register_reward_handlers(bot, user_data):
         user_id = str(call.from_user.id)
         user_data[user_id] = user_data.get(user_id, {})
         user_data[user_id]["selected_category"] = CATEGORY_MAP[category_label]
-        save_user_data()
+        save_user_data(user_data)
 
         # Если выбрана "Суперприз", сразу показать варианты добавления
         if category_label == "Суперприз":
@@ -71,7 +71,7 @@ def register_reward_handlers(bot, user_data):
         reward_type = call.data.split(":")[1]
         user_id = str(call.from_user.id)
         user_data[user_id]["selected_type"] = reward_type
-        save_user_data()
+        save_user_data(user_data)
 
         markup = InlineKeyboardMarkup()
         markup.add(
