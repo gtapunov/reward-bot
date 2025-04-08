@@ -33,7 +33,7 @@ def register_timer_handlers(bot, user_data):
         if "start_time" in user_data[user_id]:
             start = datetime.fromisoformat(user_data[user_id]["start_time"])
             elapsed = datetime.utcnow() - start
-            remaining = timedelta(minutes=30) - elapsed
+            remaining = timedelta(seconds=3) - elapsed
             if remaining.total_seconds() > 0:
                 m = int(remaining.total_seconds() // 60)
                 s = int(remaining.total_seconds() % 60)
