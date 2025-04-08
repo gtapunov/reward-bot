@@ -39,32 +39,29 @@ def register_reward_handlers(bot, user_data):
     def handle_category_selection(call: CallbackQuery):
         category_label = call.data.split(":")[1]
         user_id = str(call.from_user.id)
+        category = CATEGORY_MAP[category_label]
+    
         user_data[user_id] = user_data.get(user_id, {})
-        user_data[user_id]["selected_category"] = CATEGORY_MAP[category_label]
+        user_data[user_id]["selected_category"] = category
+        # Стираем старую подкатегорию, если была
+        user_data[user_id].pop("selected_subcategory", None)
+    
         save_user_data(user_data)
-
-        # Если выбрана "Суперприз", сразу показать варианты добавления
-        if category_label == "Суперприз":
+    
+        if category in ["basic", "medium"]:
+            # Показываем кнопки дофаминовая / здоровая
             markup = InlineKeyboardMarkup()
-            markup.add(
-                InlineKeyboardButton("Добавить свою", callback_data="method:manual"),
-                InlineKeyboardButton("Получить идеи от ИИ", callback_data="method:ai")
+            for sub in SUBCATEGORY_MAP:
+                markup.add(InlineKeyboardButton(sub, callback_data=f"subcategory:{sub}"))
+            bot.edit_message_text(
+                "Уточни категорию награды:",
+                chat_id=call.message.chat.id,
+                message_id=call.message.message_id,
+                reply_markup=markup
             )
-            bot.edit_message_text("Выбери способ добавления награды:",
-                                  chat_id=call.message.chat.id,
-                                  message_id=call.message.message_id,
-                                  reply_markup=markup)
         else:
-            # Показать тип награды: здоровая / дофаминовая
-            markup = InlineKeyboardMarkup()
-            markup.add(
-                InlineKeyboardButton("🧘 Здоровая", callback_data="type:healthy"),
-                InlineKeyboardButton("📱 Дофаминовая", callback_data="type:dopamine")
-            )
-            bot.edit_message_text("Уточни тип награды:",
-                                  chat_id=call.message.chat.id,
-                                  message_id=call.message.message_id,
-                                  reply_markup=markup)
+            # Если супернаграда — сразу идём к выбору способа
+            show_input_method_selection(call.message)
     
     @bot.callback_query_handler(func=lambda call: call.data.startswith("type:"))
     def handle_type_selection(call: CallbackQuery):
