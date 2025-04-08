@@ -33,7 +33,7 @@ def register_timer_handlers(bot, user_data):
         if "start_time" in user_data[user_id]:
             start = datetime.fromisoformat(user_data[user_id]["start_time"])
             elapsed = datetime.utcnow() - start
-            remaining = timedelta(seconds=20) - elapsed
+            remaining = timedelta(seconds=5) - elapsed
             if remaining.total_seconds() > 0:
                 m = int(remaining.total_seconds() // 60)
                 s = int(remaining.total_seconds() % 60)
@@ -95,6 +95,27 @@ def register_timer_handlers(bot, user_data):
         bot.edit_message_text(
             f"😌 Перерыв на {break_minutes} минут начался!\n"
             f"Можешь завершить его досрочно 👇",
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            reply_markup=markup
+        )
+
+    @bot.callback_query_handler(func=lambda call: call.data == "end_break")
+    def handle_end_break(call):
+        user_id = str(call.from_user.id)
+        user_data[user_id] = user_data.get(user_id, {})
+        user_data[user_id].pop("break_until", None)
+    
+        save_user_data()
+    
+        markup = InlineKeyboardMarkup()
+        markup.add(
+            InlineKeyboardButton("▶️ Начать следующую фокус-сессию", callback_data="next_focus"),
+            InlineKeyboardButton("⛔️ Завершить фокусирование", callback_data="end_focus")
+        )
+    
+        bot.edit_message_text(
+            "🔔 Перерыв завершён. Что дальше?",
             chat_id=call.message.chat.id,
             message_id=call.message.message_id,
             reply_markup=markup
