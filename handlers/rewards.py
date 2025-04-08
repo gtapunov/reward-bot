@@ -107,20 +107,27 @@ def register_reward_handlers(bot, user_data):
             bot.register_next_step_handler(msg, handle_manual_reward)
         elif method == "ai":
             send_ai_suggestions(call.message)
-
+    
     def handle_manual_reward(message: Message):
         user_id = str(message.from_user.id)
-        category = user_data[user_id]["selected_category"]
-        reward_type = user_data[user_id].get("selected_type")
+        category = user_data[user_id].get("selected_category")
+        subcategory = user_data[user_id].get("selected_subcategory")
+    
+        if not category:
+            bot.reply_to(message, "Ошибка: категория не указана.")
+            return
+    
         reward = message.text.strip()
+    
+        key = category if category == "super" else f"{category}_{subcategory}"
+        user_data[user_id].setdefault("rewards", {})
+        if key not in user_data[user_id]["rewards"] or not isinstance(user_data[user_id]["rewards"][key], list):
+            user_data[user_id]["rewards"][key] = []
 
-        if category == "super":
-            user_data[user_id].setdefault("rewards", {}).setdefault("super", []).append(reward)
-        else:
-            user_data[user_id].setdefault("rewards", {}).setdefault(category, {}).setdefault(reward_type, []).append(reward)
+    user_data[user_id]["rewards"][key].append(reward)
 
-        save_user_data(user_data)
-        bot.reply_to(message, f"✅ Награда сохранена: {reward}")
+    save_user_data(user_data)
+    bot.reply_to(message, f"✅ Награда сохранена: {reward}")
 
     def send_ai_suggestions(message: Message):
         user_id = str(message.chat.id)
@@ -153,22 +160,30 @@ def register_reward_handlers(bot, user_data):
             send_ai_suggestions(call.message)
             return
     
-        if user_id not in ai_suggestions:
-            bot.send_message(call.message.chat.id, "⚠️ Я не нашёл предложений. Пожалуйста, сначала запроси идеи от ИИ.")
+        index = int(call.data.split(":")[1])
+        suggestions = ai_suggestions.get(user_id)
+        if not suggestions or index >= len(suggestions):
+            bot.send_message(call.message.chat.id, "Ошибка: не могу найти награду.")
             return
     
-        try:
-            index = int(call.data.split(":")[1])
-            reward = ai_suggestions[user_id][index]
-            category = user_data[user_id]["selected_category"]
-            subcategory = user_data[user_id].get("selected_subcategory")
+        reward = suggestions[index]
     
-            key = f"{category}_{subcategory}" if subcategory else category
-            user_data[user_id].setdefault("rewards", {}).setdefault(key, []).append(reward)
-            save_user_data(user_data)
-            bot.send_message(call.message.chat.id, f"✅ Награда сохранена: {reward}")
-        except (IndexError, ValueError):
-            bot.send_message(call.message.chat.id, "⚠️ Что-то пошло не так. Попробуй снова.")
+        category = user_data[user_id].get("selected_category")
+        subcategory = user_data[user_id].get("selected_subcategory")
+    
+        if not category:
+            bot.send_message(call.message.chat.id, "Ошибка: категория не указана.")
+            return
+    
+        key = category if category == "super" else f"{category}_{subcategory}"
+        user_data[user_id].setdefault("rewards", {})
+        if key not in user_data[user_id]["rewards"] or not isinstance(user_data[user_id]["rewards"][key], list):
+            user_data[user_id]["rewards"][key] = []
+    
+        user_data[user_id]["rewards"][key].append(reward)
+    
+        save_user_data(user_data)
+        bot.send_message(call.message.chat.id, f"✅ Награда сохранена: {reward}")
 
     @bot.message_handler(commands=["myrewards"])
     def list_rewards(message: Message):
