@@ -76,3 +76,26 @@ def register_timer_handlers(bot, user_data):
             pomos = user_data[user_id].get("pomodoro_count", 0)
             status_text = f"⏳ Нет активного таймера.\n🍅 Помидоров в этой сессии: {pomos}\n⭐ Focus Points: {points}"
             bot.reply_to(message, status_text)
+
+    @bot.callback_query_handler(func=lambda call: call.data in ["break_5", "break_20"])
+    def handle_break(call):
+        user_id = str(call.from_user.id)
+        user_data[user_id] = user_data.get(user_id, {})
+        now = datetime.utcnow()
+    
+        break_minutes = 5 if call.data == "break_5" else 20
+        break_end = now + timedelta(minutes=break_minutes)
+        user_data[user_id]["break_until"] = break_end.isoformat()
+    
+        save_user_data()
+    
+        markup = InlineKeyboardMarkup()
+        markup.add(InlineKeyboardButton("⏹ Завершить перерыв", callback_data="end_break"))
+    
+        bot.edit_message_text(
+            f"😌 Перерыв на {break_minutes} минут начался!\n"
+            f"Можешь завершить его досрочно 👇",
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            reply_markup=markup
+        )
