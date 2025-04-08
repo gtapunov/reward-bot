@@ -145,25 +145,30 @@ def register_reward_handlers(bot, user_data):
         except Exception as e:
             bot.send_message(message.chat.id, f"Ошибка при генерации наград: {e}")
 
-    @bot.callback_query_handler(func=lambda call: call.data.startswith("select:") or call.data == "more")
-    def handle_ai_choice(call: CallbackQuery):
-        user_id = str(call.from_user.id)
-        if call.data == "more":
-            send_ai_suggestions(call.message)
-            return
+@bot.callback_query_handler(func=lambda call: call.data.startswith("select:") or call.data == "more")
+def handle_ai_choice(call: CallbackQuery):
+    user_id = str(call.from_user.id)
 
+    if call.data == "more":
+        send_ai_suggestions(call.message)
+        return
+
+    if user_id not in ai_suggestions:
+        bot.send_message(call.message.chat.id, "⚠️ Я не нашёл предложений. Пожалуйста, сначала запроси идеи от ИИ.")
+        return
+
+    try:
         index = int(call.data.split(":")[1])
         reward = ai_suggestions[user_id][index]
         category = user_data[user_id]["selected_category"]
-        reward_type = user_data[user_id].get("selected_type")
+        subcategory = user_data[user_id].get("selected_subcategory")
 
-        if category == "super":
-            user_data[user_id].setdefault("rewards", {}).setdefault("super", []).append(reward)
-        else:
-            user_data[user_id].setdefault("rewards", {}).setdefault(category, {}).setdefault(reward_type, []).append(reward)
-
+        key = f"{category}_{subcategory}" if subcategory else category
+        user_data[user_id].setdefault("rewards", {}).setdefault(key, []).append(reward)
         save_user_data(user_data)
         bot.send_message(call.message.chat.id, f"✅ Награда сохранена: {reward}")
+    except (IndexError, ValueError):
+        bot.send_message(call.message.chat.id, "⚠️ Что-то пошло не так. Попробуй снова.")
 
     @bot.message_handler(commands=["myrewards"])
     def list_rewards(message: Message):
