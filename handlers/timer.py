@@ -41,7 +41,6 @@ def register_timer_handlers(bot, user_data):
                 pomos = user_data[user_id].get("pomodoro_count", 0)
                 status_text = f"⏳ Осталось: {m} мин {s} сек\n🍅 Помидоров в этой сессии: {pomos}\n⭐️ Focus Points: {points}"
                 bot.reply_to(message, status_text)
-                bot.reply_to(message, f"⏳ Осталось: {m} мин {s} сек")
             else:
                 # Завершение таймера и выдача награды
                 count = user_data[user_id].get("pomodoro_count", 0) + 1
