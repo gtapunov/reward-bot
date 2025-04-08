@@ -121,19 +121,19 @@ def register_timer_handlers(bot, user_data):
             reply_markup=markup
         )
 
-@bot.callback_query_handler(func=lambda call: call.data == "next_focus")
-def handle_next_focus(call):
-    user_id = str(call.from_user.id)
-    user_data[user_id] = user_data.get(user_id, {})
-    user_data[user_id]["start_time"] = datetime.utcnow().isoformat()
-    user_data[user_id]["pomodoro_count"] = 0  # сбрасываем сессию
-    save_user_data()
-    
-    bot.edit_message_text(
-        "🧠 Новая фокус-сессия началась! 30 минут тишины...",
-        chat_id=call.message.chat.id,
-        message_id=call.message.message_id
-    )
+    @bot.callback_query_handler(func=lambda call: call.data == "next_focus")
+    def handle_next_focus(call):
+        user_id = str(call.from_user.id)
+        user_data[user_id] = user_data.get(user_id, {})
+        user_data[user_id]["start_time"] = datetime.utcnow().isoformat()
+        user_data[user_id]["pomodoro_count"] = 0  # сбрасываем сессию
+        save_user_data()
+        
+        bot.edit_message_text(
+            "🧠 Новая фокус-сессия началась! 30 минут тишины...",
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id
+        )
 
     @bot.callback_query_handler(func=lambda call: call.data == "end_focus")
     def handle_end_focus(call):
