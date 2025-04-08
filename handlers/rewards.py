@@ -118,16 +118,16 @@ def register_reward_handlers(bot, user_data):
             return
     
         reward = message.text.strip()
-    
         key = category if category == "super" else f"{category}_{subcategory}"
+    
         user_data[user_id].setdefault("rewards", {})
         if key not in user_data[user_id]["rewards"] or not isinstance(user_data[user_id]["rewards"][key], list):
             user_data[user_id]["rewards"][key] = []
-
-    user_data[user_id]["rewards"][key].append(reward)
-
-    save_user_data(user_data)
-    bot.reply_to(message, f"✅ Награда сохранена: {reward}")
+    
+        user_data[user_id]["rewards"][key].append(reward)
+    
+        save_user_data(user_data)
+        bot.reply_to(message, f"✅ Награда сохранена: {reward}")
 
     def send_ai_suggestions(message: Message):
         user_id = str(message.chat.id)
@@ -167,7 +167,6 @@ def register_reward_handlers(bot, user_data):
             return
     
         reward = suggestions[index]
-    
         category = user_data[user_id].get("selected_category")
         subcategory = user_data[user_id].get("selected_subcategory")
     
@@ -176,6 +175,7 @@ def register_reward_handlers(bot, user_data):
             return
     
         key = category if category == "super" else f"{category}_{subcategory}"
+    
         user_data[user_id].setdefault("rewards", {})
         if key not in user_data[user_id]["rewards"] or not isinstance(user_data[user_id]["rewards"][key], list):
             user_data[user_id]["rewards"][key] = []
