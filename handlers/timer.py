@@ -74,5 +74,5 @@ def register_timer_handlers(bot, user_data):
         else:
             points = user_data[user_id].get("focus_points", 0)
             pomos = user_data[user_id].get("pomodoro_count", 0)
-            status_text = f"⏸ Нет активного таймера.\n🍅 Помидоров в этой сессии: {pomos}\n⭐ Focus Points: {points}"
+            status_text = f"⏳ Нет активного таймера.\n🍅 Помидоров в этой сессии: {pomos}\n⭐ Focus Points: {points}"
             bot.reply_to(message, status_text)
