@@ -83,8 +83,11 @@ def register_reward_handlers(bot, user_data):
         user_id = str(call.from_user.id)
         sub = SUBCATEGORY_MAP[subcategory_label]
         category = user_data[user_id]["selected_category"]
-        user_data[user_id]["selected_category"] = f"{category}_{sub}"
+    
+        user_data[user_id]["selected_category"] = category
+        user_data[user_id]["selected_subcategory"] = sub  # 💡 Вот эта строка была пропущена
         save_user_data(user_data)
+    
         show_input_method_selection(call.message)
 
     def show_input_method_selection(msg):
