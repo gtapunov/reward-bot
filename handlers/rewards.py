@@ -80,7 +80,7 @@ def register_reward_handlers(bot, user_data):
         elif method == "ai":
             send_ai_suggestions(call.message)
 
-     def handle_manual_reward(message: Message):
+    def handle_manual_reward(message: Message):
         user_id = str(message.from_user.id)
         user_data[user_id] = user_data.get(user_id, {})
         category = user_data[user_id]["selected_category"]
