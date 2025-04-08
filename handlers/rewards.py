@@ -39,18 +39,46 @@ def register_reward_handlers(bot, user_data):
     def handle_category_selection(call: CallbackQuery):
         category_label = call.data.split(":")[1]
         user_id = str(call.from_user.id)
-        category = CATEGORY_MAP[category_label]
         user_data[user_id] = user_data.get(user_id, {})
-        user_data[user_id]["selected_category"] = category
-        save_user_data(user_data)
+        user_data[user_id]["selected_category"] = CATEGORY_MAP[category_label]
+        save_user_data()
 
-        if category in ["basic", "medium"]:
+        # Если выбрана "Суперприз", сразу показать варианты добавления
+        if category_label == "Суперприз":
             markup = InlineKeyboardMarkup()
-            for sub in SUBCATEGORY_MAP:
-                markup.add(InlineKeyboardButton(sub, callback_data=f"subcategory:{sub}"))
-            bot.edit_message_text("Уточни категорию награды:", chat_id=call.message.chat.id, message_id=call.message.message_id, reply_markup=markup)
+            markup.add(
+                InlineKeyboardButton("Добавить свою", callback_data="method:manual"),
+                InlineKeyboardButton("Получить идеи от ИИ", callback_data="method:ai")
+            )
+            bot.edit_message_text("Выбери способ добавления награды:",
+                                  chat_id=call.message.chat.id,
+                                  message_id=call.message.message_id,
+                                  reply_markup=markup)
         else:
-            show_input_method_selection(call.message)
+            # Показать тип награды: здоровая / дофаминовая
+            markup = InlineKeyboardMarkup()
+            markup.add(
+                InlineKeyboardButton("🧘 Здоровая", callback_data="type:healthy"),
+                InlineKeyboardButton("📱 Дофаминовая", callback_data="type:dopamine")
+            )
+            bot.edit_message_text("Уточни тип награды:",
+                                  chat_id=call.message.chat.id,
+                                  message_id=call.message.message_id,
+                                  reply_markup=markup)
+    
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("type:"))
+    def handle_type_selection(call: CallbackQuery):
+        reward_type = call.data.split(":")[1]
+        user_id = str(call.from_user.id)
+        user_data[user_id]["selected_type"] = reward_type
+        save_user_data()
+
+        markup = InlineKeyboardMarkup()
+        markup.add(
+            InlineKeyboardButton("Добавить свою", callback_data="method:manual"),
+            InlineKeyboardButton("Получить идеи от ИИ", callback_data="method:ai")
+        )
+        bot.send_message(call.message.chat.id, "Выбери способ добавления награды:", reply_markup=markup)
 
     @bot.callback_query_handler(func=lambda call: call.data.startswith("subcategory:"))
     def handle_subcategory_selection(call: CallbackQuery):
@@ -82,10 +110,15 @@ def register_reward_handlers(bot, user_data):
 
     def handle_manual_reward(message: Message):
         user_id = str(message.from_user.id)
-        user_data[user_id] = user_data.get(user_id, {})
         category = user_data[user_id]["selected_category"]
+        reward_type = user_data[user_id].get("selected_type")
         reward = message.text.strip()
-        user_data[user_id].setdefault("rewards", {}).setdefault(category, []).append(reward)
+
+        if category == "super":
+            user_data[user_id].setdefault("rewards", {}).setdefault("super", []).append(reward)
+        else:
+            user_data[user_id].setdefault("rewards", {}).setdefault(category, {}).setdefault(reward_type, []).append(reward)
+
         save_user_data(user_data)
         bot.reply_to(message, f"✅ Награда сохранена: {reward}")
 
@@ -118,10 +151,17 @@ def register_reward_handlers(bot, user_data):
         if call.data == "more":
             send_ai_suggestions(call.message)
             return
+
         index = int(call.data.split(":")[1])
         reward = ai_suggestions[user_id][index]
         category = user_data[user_id]["selected_category"]
-        user_data[user_id].setdefault("rewards", {}).setdefault(category, []).append(reward)
+        reward_type = user_data[user_id].get("selected_type")
+
+        if category == "super":
+            user_data[user_id].setdefault("rewards", {}).setdefault("super", []).append(reward)
+        else:
+            user_data[user_id].setdefault("rewards", {}).setdefault(category, {}).setdefault(reward_type, []).append(reward)
+
         save_user_data(user_data)
         bot.send_message(call.message.chat.id, f"✅ Награда сохранена: {reward}")
 
