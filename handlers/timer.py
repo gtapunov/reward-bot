@@ -146,5 +146,4 @@ def register_timer_handlers(bot, user_data):
         bot.edit_message_text(
             "✅ Фокус-сессия завершена. Отличная работа!",
             chat_id=call.message.chat.id,
-            message_id=call.message.message_id
-        )
+            message_id=call.message.message_id)
