@@ -176,7 +176,7 @@ def check_timers(bot, user_data):
                     is_medium = data["pomodoro_count"] % 4 == 0
                     reward_type = "medium" if is_medium else "basic"
                     reward_category = "healthy" if random.random() < 0.7 else "dopamine"
-                    reward_text = pick_random_reward(user_data, user_id, reward_type, reward_category)
+                    reward_text, reward_type, reward_category = pick_random_reward(user_data, user_id, data["pomodoro_count"])
 
                     text = f"🎯 Фокус-сессия завершена!\nТы заработал награду: {reward_text}"
                     markup = InlineKeyboardMarkup()
