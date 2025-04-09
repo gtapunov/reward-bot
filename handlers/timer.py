@@ -7,7 +7,7 @@ import threading
 import time
 
 def register_timer_handlers(bot, user_data):
-    def save_user_data():
+    def save_user_data(user_data):
         with open("user_data.json", "w", encoding="utf-8") as f:
             json.dump(user_data, f, ensure_ascii=False, indent=2)
 
@@ -16,7 +16,7 @@ def register_timer_handlers(bot, user_data):
         user_id = str(message.from_user.id)
         user_data[user_id] = user_data.get(user_id, {})
         user_data[user_id]["start_time"] = datetime.utcnow().isoformat()
-        save_user_data()
+        save_user_data(user_data)
         bot.reply_to(message, "⏱ Таймер на 30 минут запущен!")
 
     @bot.message_handler(commands=["cancel"])
@@ -24,7 +24,7 @@ def register_timer_handlers(bot, user_data):
         user_id = str(message.from_user.id)
         if "start_time" in user_data.get(user_id, {}):
             del user_data[user_id]["start_time"]
-            save_user_data()
+            save_user_data(user_data)
             bot.reply_to(message, "❌ Таймер отменён.")
         else:
             bot.reply_to(message, "Нет активного таймера.")
@@ -50,14 +50,14 @@ def register_timer_handlers(bot, user_data):
                 user_data[user_id]["pomodoro_count"] = count
                 user_data[user_id]["focus_points"] = user_data[user_id].get("focus_points", 0) + 1
                 del user_data[user_id]["start_time"]
-
-                # Определение категории
+                
+                # Определение категории награды
                 category = "medium" if count % 4 == 0 else "basic"
                 sub = "healthy" if random.random() < 0.7 else "dopamine"
                 key = f"{category}_{sub}"
-
+                
                 # Выбор награды
-                rewards = user_data[user_id].get("rewards", {}).get(key, [])
+                rewards = user_data.get(user_id, {}).get("rewards", {}).get(key, [])
                 if rewards:
                     reward = random.choice(rewards)
                     bot.send_message(message.chat.id, f"🏆 Награда за фокус-сессию: {reward}")
@@ -73,7 +73,7 @@ def register_timer_handlers(bot, user_data):
                 markup.add(InlineKeyboardButton("🚫 Завершить фокусирование", callback_data="end_focus"))
                 bot.send_message(message.chat.id, "Что делаем дальше?", reply_markup=markup)
 
-                save_user_data()
+                save_user_data(user_data)
         else:
             points = user_data[user_id].get("focus_points", 0)
             pomos = user_data[user_id].get("pomodoro_count", 0)
@@ -90,7 +90,7 @@ def register_timer_handlers(bot, user_data):
         break_end = now + timedelta(minutes=break_minutes)
         user_data[user_id]["break_until"] = break_end.isoformat()
     
-        save_user_data()
+        save_user_data(user_data)
     
         markup = InlineKeyboardMarkup()
         markup.add(InlineKeyboardButton("⏹ Завершить перерыв", callback_data="end_break"))
@@ -109,7 +109,7 @@ def register_timer_handlers(bot, user_data):
         user_data[user_id] = user_data.get(user_id, {})
         user_data[user_id].pop("break_until", None)
     
-        save_user_data()
+        save_user_data(user_data)
     
         markup = InlineKeyboardMarkup()
         markup.add(
@@ -129,8 +129,7 @@ def register_timer_handlers(bot, user_data):
         user_id = str(call.from_user.id)
         user_data[user_id] = user_data.get(user_id, {})
         user_data[user_id]["start_time"] = datetime.utcnow().isoformat()
-        user_data[user_id]["pomodoro_count"] = 0  # сбрасываем сессию
-        save_user_data()
+        save_user_data(user_data)
         
         bot.edit_message_text(
             "🧠 Новая фокус-сессия началась! 30 минут тишины...",
@@ -144,7 +143,7 @@ def register_timer_handlers(bot, user_data):
         user_data[user_id] = user_data.get(user_id, {})
         user_data[user_id].pop("start_time", None)
         user_data[user_id]["pomodoro_count"] = 0  # сбрасываем
-        save_user_data()
+        save_user_data(user_data)
         
         bot.edit_message_text(
             "✅ Фокус-сессия завершена. Отличная работа!",
