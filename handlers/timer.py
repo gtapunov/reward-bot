@@ -149,15 +149,25 @@ def register_timer_handlers(bot, user_data):
             message_id=call.message.message_id)
 
 def check_timers(bot, user_data):
+    print("[DEBUG] check_timers запущен...")
+
     while True:
-        time.sleep(10)  # Проверка каждые 10 секунд
+        time.sleep(10)
         now = datetime.utcnow()
+        print(f"[DEBUG] Цикл проверки таймеров — {now.isoformat()}")
 
         for user_id, data in user_data.items():
-            # ✅ Проверка завершения фокус-сессии
+            print(f"[DEBUG] Проверка пользователя {user_id} — данные: {data}")
+
+            # Проверка завершения фокус-сессии
             if "start_time" in data and not data.get("session_active"):
                 start = datetime.fromisoformat(data["start_time"])
-                if now - start >= timedelta(minutes=30):  # ⏰ 30 мин
+                elapsed = now - start
+                print(f"[DEBUG] Прошло времени: {elapsed.total_seconds()} сек")
+
+                if elapsed >= timedelta(seconds=60):  # заменено для теста
+                    print("[DEBUG] ⏰ Фокус-сессия завершена! Обрабатываем...")
+
                     del data["start_time"]
                     data["session_active"] = False
                     data["pomodoro_count"] = data.get("pomodoro_count", 0) + 1
@@ -177,11 +187,16 @@ def check_timers(bot, user_data):
                     bot.send_message(user_id, text, reply_markup=markup)
                     save_user_data(user_data)
 
-            # ✅ Проверка завершения перерыва
+            # Проверка завершения перерыва
             if "break_start_time" in data and not data.get("break_done"):
                 break_start = datetime.fromisoformat(data["break_start_time"])
                 break_duration = 20 if data.get("long_break") else 5
-                if now - break_start >= timedelta(minutes=break_duration):
+                elapsed = now - break_start
+
+                print(f"[DEBUG] Перерыв идёт {elapsed.total_seconds()} сек")
+
+                if elapsed >= timedelta(minutes=break_duration):
+                    print("[DEBUG] ⏳ Перерыв завершён!")
                     data["break_done"] = True
                     text = "⏳ Перерыв завершён!"
                     markup = InlineKeyboardMarkup()
