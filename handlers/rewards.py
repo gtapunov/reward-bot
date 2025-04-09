@@ -212,10 +212,11 @@ def pick_random_reward(user_data, user_id, count):
     count — это номер текущего помидора (после увеличения счётчика).
     """
     category = "medium" if count % 4 == 0 else "basic"
-    sub = "healthy" if random.random() < 0.7 else "dopamine"
-    key = f"{category}_{sub}"
+    subcategory = "healthy" if random.random() < 0.7 else "dopamine"
+    key = f"{category}_{subcategory}"
 
     rewards = user_data.get(user_id, {}).get("rewards", {}).get(key, [])
     if not rewards:
-        return None, category, sub
-    return random.choice(rewards), category, sub
+        return "⚠️ У тебя нет наград категории", category, subcategory
+
+    return random.choice(rewards), category, subcategory
