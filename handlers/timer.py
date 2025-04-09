@@ -5,11 +5,9 @@ import random
 import json
 import threading
 import time
+from storage import save_user_data
 
 def register_timer_handlers(bot, user_data):
-    def save_user_data(user_data):
-        with open("user_data.json", "w", encoding="utf-8") as f:
-            json.dump(user_data, f, ensure_ascii=False, indent=2)
 
     @bot.message_handler(commands=["timer"])
     def start_timer(message: Message):
