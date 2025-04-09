@@ -34,7 +34,7 @@ def register_timer_handlers(bot, user_data):
         if "start_time" in user_data[user_id]:
             start = datetime.fromisoformat(user_data[user_id]["start_time"])
             elapsed = datetime.utcnow() - start
-            remaining = timedelta(seconds=5) - elapsed
+            remaining = timedelta(seconds=60) - elapsed
             if remaining.total_seconds() > 0:
                 m = int(remaining.total_seconds() // 60)
                 s = int(remaining.total_seconds() % 60)
@@ -158,7 +158,7 @@ def check_timers(bot, user_data):
                 # Фокус-сессия завершена
                 if "start_time" in data and "session_active" not in data:
                     start = datetime.fromisoformat(data["start_time"])
-                    if now - start >= timedelta(minutes=30):
+                    if now - start >= timedelta(seconds=60):
                         # Удаляем start_time, но оставляем инфу о завершённой сессии
                         del user_data[user_id]["start_time"]
                         data["session_active"] = False
