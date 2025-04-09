@@ -149,51 +149,45 @@ def register_timer_handlers(bot, user_data):
             message_id=call.message.message_id)
 
 def check_timers(bot, user_data):
-    def loop():
-        while True:
-            time.sleep(10)  # проверка каждые 10 секунд
-            now = datetime.utcnow()
+    while True:
+        time.sleep(10)  # Проверка каждые 10 секунд
+        now = datetime.utcnow()
 
-            for user_id, data in user_data.items():
-                # Фокус-сессия завершена
-                if "start_time" in data and "session_active" not in data:
-                    start = datetime.fromisoformat(data["start_time"])
-                    if now - start >= timedelta(seconds=60):
-                        # Удаляем start_time, но оставляем инфу о завершённой сессии
-                        del user_data[user_id]["start_time"]
-                        data["session_active"] = False
-                        data["pomodoro_count"] = data.get("pomodoro_count", 0) + 1
-                        data["focus_points"] = data.get("focus_points", 0) + 1
+        for user_id, data in user_data.items():
+            # ✅ Проверка завершения фокус-сессии
+            if "start_time" in data and not data.get("session_active"):
+                start = datetime.fromisoformat(data["start_time"])
+                if now - start >= timedelta(minutes=30):  # ⏰ 30 мин
+                    del data["start_time"]
+                    data["session_active"] = False
+                    data["pomodoro_count"] = data.get("pomodoro_count", 0) + 1
+                    data["focus_points"] = data.get("focus_points", 0) + 1
 
-                        # Определяем тип награды
-                        is_medium = data["pomodoro_count"] % 4 == 0
-                        reward_type = "medium" if is_medium else "basic"
-                        reward_category = "healthy" if random.random() < 0.7 else "dopamine"
-                        reward_text = pick_random_reward(user_data, user_id, reward_type, reward_category)
+                    is_medium = data["pomodoro_count"] % 4 == 0
+                    reward_type = "medium" if is_medium else "basic"
+                    reward_category = "healthy" if random.random() < 0.7 else "dopamine"
+                    reward_text = pick_random_reward(user_data, user_id, reward_type, reward_category)
 
-                        text = f"⏰ Фокус-сессия закончилась!\nТы заработал награду: {reward_text}"
-                        markup = InlineKeyboardMarkup()
-                        if is_medium:
-                            markup.add(InlineKeyboardButton("Начать перерыв 20 минут", callback_data="break_20"))
-                        else:
-                            markup.add(InlineKeyboardButton("Начать перерыв 5 минут", callback_data="break_5"))
-                        bot.send_message(user_id, text, reply_markup=markup)
-                        save_user_data(user_data)
+                    text = f"🎯 Фокус-сессия завершена!\nТы заработал награду: {reward_text}"
+                    markup = InlineKeyboardMarkup()
+                    btn_text = "Начать перерыв 20 минут" if is_medium else "Начать перерыв 5 минут"
+                    callback = "break_20" if is_medium else "break_5"
+                    markup.add(InlineKeyboardButton(btn_text, callback_data=callback))
 
-                # Перерыв завершён
-                if "break_start_time" in data and not data.get("break_done"):
-                    break_start = datetime.fromisoformat(data["break_start_time"])
-                    break_duration = 20 if data.get("long_break") else 5
-                    if now - break_start >= timedelta(minutes=break_duration):
-                        data["break_done"] = True
-                        text = "⏳ Перерыв завершён!"
-                        markup = InlineKeyboardMarkup()
-                        markup.add(
-                            InlineKeyboardButton("Начать следующую фокус-сессию", callback_data="next_focus"),
-                            InlineKeyboardButton("Завершить фокусирование", callback_data="end_focus")
-                        )
-                        bot.send_message(user_id, text, reply_markup=markup)
-                        save_user_data(user_data)
+                    bot.send_message(user_id, text, reply_markup=markup)
+                    save_user_data(user_data)
 
-    thread = threading.Thread(target=loop, daemon=True)
-    thread.start()
+            # ✅ Проверка завершения перерыва
+            if "break_start_time" in data and not data.get("break_done"):
+                break_start = datetime.fromisoformat(data["break_start_time"])
+                break_duration = 20 if data.get("long_break") else 5
+                if now - break_start >= timedelta(minutes=break_duration):
+                    data["break_done"] = True
+                    text = "⏳ Перерыв завершён!"
+                    markup = InlineKeyboardMarkup()
+                    markup.add(
+                        InlineKeyboardButton("Начать следующую фокус-сессию", callback_data="next_focus"),
+                        InlineKeyboardButton("Завершить фокусирование", callback_data="end_focus")
+                    )
+                    bot.send_message(user_id, text, reply_markup=markup)
+                    save_user_data(user_data)
