@@ -184,7 +184,7 @@ def check_timers(bot, user_data):
                     callback = "break_20" if is_medium else "break_5"
                     markup.add(InlineKeyboardButton(btn_text, callback_data=callback))
 
-                    bot.send_message(user_id, text, reply_markup=markup)
+                    bot.send_message(chat_id=user_id, text=text, reply_markup=markup)
                     save_user_data(user_data)
 
             # Проверка завершения перерыва
