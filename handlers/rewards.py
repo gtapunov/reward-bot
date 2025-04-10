@@ -118,17 +118,17 @@ def register_reward_handlers(bot, user_data):
             bot.reply_to(message, "Ошибка: категория не указана.")
             return
     
-        reward = message.text.strip()
-        key = f"{category}_{subcategory}" if category != "super" else "super"
+        rewards = message.text.strip().split('\n')  # <-- вот тут вся магия
     
+        key = f"{category}_{subcategory}" if category != "super" else "super"
         user_data[user_id].setdefault("rewards", {})
         if key not in user_data[user_id]["rewards"] or not isinstance(user_data[user_id]["rewards"][key], list):
             user_data[user_id]["rewards"][key] = []
     
-        user_data[user_id]["rewards"][key].append(reward)
+        user_data[user_id]["rewards"][key].extend(rewards)  # добавляем сразу все
     
         save_user_data(user_data)
-        bot.reply_to(message, f"✅ Награда сохранена: {reward}")
+        bot.reply_to(message, f"✅ Добавлено {len(rewards)} наград!")
 
     def send_ai_suggestions(message: Message):
         user_id = str(message.chat.id)
