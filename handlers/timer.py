@@ -34,7 +34,7 @@ def register_timer_handlers(bot, user_data):
         if "start_time" in user_data[user_id]:
             start = datetime.fromisoformat(user_data[user_id]["start_time"])
             elapsed = datetime.utcnow() - start
-            remaining = timedelta(seconds=60) - elapsed
+            remaining = timedelta(minutes=30) - elapsed
             if remaining.total_seconds() > 0:
                 m = int(remaining.total_seconds() // 60)
                 s = int(remaining.total_seconds() % 60)
@@ -165,7 +165,7 @@ def check_timers(bot, user_data):
                 elapsed = now - start
                 print(f"[DEBUG] Прошло времени: {elapsed.total_seconds()} сек")
 
-                if elapsed >= timedelta(seconds=60):  # заменено для теста
+                if elapsed >= timedelta(minutes=30):  # заменено для теста
                     print("[DEBUG] ⏰ Фокус-сессия завершена! Обрабатываем...")
 
                     del data["start_time"]
