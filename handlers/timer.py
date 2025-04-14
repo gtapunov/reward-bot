@@ -87,6 +87,7 @@ def register_timer_handlers(bot, user_data):
         break_minutes = 5 if call.data == "break_5" else 20
         break_end = now + timedelta(minutes=break_minutes)
         user_data[user_id]["break_until"] = break_end.isoformat()
+        user_data[user_id]["break_done"] = False
         user_data[user_id]["break_start_time"] = now.isoformat()
     
         save_user_data(user_data)
