@@ -221,12 +221,12 @@ def register_reward_handlers(bot, user_data):
     @bot.callback_query_handler(func=lambda call: call.data.startswith("edit_"))
     def handle_edit_category(call):
         if category in ["basic", "medium"]:
-        # Выбор подкатегории
-        markup = InlineKeyboardMarkup()
-        markup.add(InlineKeyboardButton("💪 Здоровые", callback_data="edit_healthy"))
-        markup.add(InlineKeyboardButton("🎉 Дофаминовые", callback_data="edit_dopamine"))
-        
-        bot.edit_message_text("Выберите подкатегорию:", chat_id=call.message.chat.id, message_id=call.message.message_id, reply_markup=markup)
+            # Выбор подкатегории
+            markup = InlineKeyboardMarkup()
+            markup.add(InlineKeyboardButton("💪 Здоровые", callback_data="edit_healthy"))
+            markup.add(InlineKeyboardButton("🎉 Дофаминовые", callback_data="edit_dopamine"))
+    
+            bot.edit_message_text("Выберите подкатегорию:", chat_id=call.message.chat.id, message_id=call.message.message_id, reply_markup=markup)
     
         else:
             # Если супернаграда — сразу показываем список наград
