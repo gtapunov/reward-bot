@@ -7,6 +7,8 @@ from storage import save_user_data
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
+user_states = {}
+
 CATEGORY_MAP = {
     "Базовая": "basic",
     "Средняя": "medium",
@@ -205,6 +207,67 @@ def register_reward_handlers(bot, user_data):
                     clean = r.lstrip("1234567890. ").strip()
                     text += f"{i}. {clean}\n"
         bot.reply_to(message, text)
+
+    @bot.message_handler(commands=["editreward"])
+    def start_edit_reward(message):
+        user_id = str(message.from_user.id)
+        user_states[user_id] = {"step": "choose_category"}
+        
+        markup = InlineKeyboardMarkup()
+        markup.add(InlineKeyboardButton("🟢 Базовые", callback_data="edit_basic"))
+        markup.add(InlineKeyboardButton("🟡 Средние", callback_data="edit_medium"))
+        bot.send_message(message.chat.id, "Выберите категорию награды:", reply_markup=markup)
+
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("edit_"))
+    def handle_edit_category(call):
+        user_id = str(call.from_user.id)
+        category = call.data.replace("edit_", "")
+        user_states[user_id] = {"step": "choose_sub", "category": category}
+    
+        markup = InlineKeyboardMarkup()
+        markup.add(InlineKeyboardButton("💪 Здоровые", callback_data="edit_healthy"))
+        markup.add(InlineKeyboardButton("🎉 Дофаминовые", callback_data="edit_dopamine"))
+        bot.edit_message_text("Выберите подкатегорию:", call.message.chat.id, call.message.message_id, reply_markup=markup)
+
+    @bot.callback_query_handler(func=lambda call: call.data in ["edit_healthy", "edit_dopamine"])
+    def handle_edit_sub(call):
+        user_id = str(call.from_user.id)
+        sub = call.data.replace("edit_", "")
+        state = user_states.get(user_id, {})
+        category = state.get("category")
+    
+        key = f"{category}_{sub}"
+        rewards = user_data.get(user_id, {}).get("rewards", {}).get(key, [])
+    
+        if not rewards:
+            bot.send_message(call.message.chat.id, f"⚠️ У тебя нет наград категории {category}, подкатегории {sub}")
+            user_states.pop(user_id, None)
+            return
+    
+        reward_list = "\n".join([f"{i+1}. {r}" for i, r in enumerate(rewards)])
+        bot.send_message(call.message.chat.id, f"Вот список наград:\n{reward_list}\n\nНапиши номер награды, которую хочешь удалить.")
+        
+        user_states[user_id].update({"step": "await_number", "key": key})
+
+    @bot.message_handler(func=lambda message: str(message.from_user.id) in user_states and user_states[str(message.from_user.id)]["step"] == "await_number")
+    def delete_reward_by_number(message):
+        user_id = str(message.from_user.id)
+        state = user_states[user_id]
+        key = state["key"]
+        rewards = user_data.get(user_id, {}).get("rewards", {}).get(key, [])
+        
+        try:
+            index = int(message.text.strip()) - 1
+            if 0 <= index < len(rewards):
+                removed = rewards.pop(index)
+                save_user_data(user_data)
+                bot.reply_to(message, f"✅ Награда '{removed}' удалена!")
+            else:
+                bot.reply_to(message, "❌ Неверный номер.")
+        except ValueError:
+            bot.reply_to(message, "❌ Введи, пожалуйста, номер награды.")
+        
+        user_states.pop(user_id, None)
 
 def pick_random_reward(user_data, user_id, count):
     """
