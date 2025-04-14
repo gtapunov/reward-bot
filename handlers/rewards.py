@@ -224,7 +224,6 @@ def register_reward_handlers(bot, user_data):
         category = call.data.replace("edit_", "")
     
         if category in ["basic", "medium"]:
-            # Выбор подкатегории
             markup = InlineKeyboardMarkup()
             markup.add(InlineKeyboardButton("💪 Здоровые", callback_data="edit_healthy"))
             markup.add(InlineKeyboardButton("🎉 Дофаминовые", callback_data="edit_dopamine"))
@@ -236,13 +235,14 @@ def register_reward_handlers(bot, user_data):
                 reply_markup=markup
             )
     
-            user_states[user_id] = {"step": "choose_sub", "category": category}  # не забудь это
-            return  # 👈 вот он!
+            user_states[user_id] = {"step": "choose_sub", "category": category}
+            return  # ВАЖНО! Чтоб дальше код не шёл
     
-        # Если супернаграда — сразу показываем список
+        # else — для супернаграды
         rewards = user_data.get(user_id, {}).get("rewards", {}).get("super", [])
+    
         if not rewards:
-            bot.send_message(call.message.chat.id, "❗️У тебя нет супернаград.")
+            bot.send_message(call.message.chat.id, "❗️ У тебя нет супернаград.")
             user_states.pop(user_id, None)
             return
     
