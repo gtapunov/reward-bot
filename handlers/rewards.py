@@ -228,9 +228,9 @@ def register_reward_handlers(bot, user_data):
         
         bot.edit_message_text("Выберите подкатегорию:", chat_id=call.message.chat.id, message_id=call.message.message_id, reply_markup=markup)
     
-    else:
-        # Если супернаграда — сразу показываем список наград
-        rewards = user_data.get(user_id, {}).get("rewards", {}).get("super", [])
+        else:
+            # Если супернаграда — сразу показываем список наград
+            rewards = user_data.get(user_id, {}).get("rewards", {}).get("super", [])
     
         if not rewards:
             bot.send_message(call.message.chat.id, "❗️ У тебя нет супернаград.")
