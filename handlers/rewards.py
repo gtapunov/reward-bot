@@ -222,26 +222,35 @@ def register_reward_handlers(bot, user_data):
     def handle_edit_category(call):
         user_id = str(call.from_user.id)
         category = call.data.replace("edit_", "")
+    
         if category in ["basic", "medium"]:
             # Выбор подкатегории
             markup = InlineKeyboardMarkup()
             markup.add(InlineKeyboardButton("💪 Здоровые", callback_data="edit_healthy"))
             markup.add(InlineKeyboardButton("🎉 Дофаминовые", callback_data="edit_dopamine"))
     
-            bot.edit_message_text("Выберите подкатегорию:", chat_id=call.message.chat.id, message_id=call.message.message_id, reply_markup=markup)
+            bot.edit_message_text(
+                "Выберите подкатегорию:",
+                chat_id=call.message.chat.id,
+                message_id=call.message.message_id,
+                reply_markup=markup
+            )
     
-        else:
-            # Если супернаграда — сразу показываем список наград
-            rewards = user_data.get(user_id, {}).get("rewards", {}).get("super", [])
+            user_states[user_id] = {"step": "choose_sub", "category": category}  # не забудь это
+            return  # 👈 вот он!
     
+        # Если супернаграда — сразу показываем список
+        rewards = user_data.get(user_id, {}).get("rewards", {}).get("super", [])
         if not rewards:
-            bot.send_message(call.message.chat.id, "❗️ У тебя нет супернаград.")
+            bot.send_message(call.message.chat.id, "❗️У тебя нет супернаград.")
             user_states.pop(user_id, None)
             return
     
         reward_list = "\n".join(f"{i+1}. {r}" for i, r in enumerate(rewards))
-        bot.send_message(call.message.chat.id, f"Вот список супернаград:\n\n{reward_list}\n\nНапиши номер награды, которую хочешь удалить.")
-    
+        bot.send_message(
+            call.message.chat.id,
+            f"Вот список супернаград:\n\n{reward_list}\n\nНапиши номер награды, которую хочешь удалить."
+        )
         user_states[user_id].update({"step": "await_number", "key": "super"})
 
     @bot.callback_query_handler(func=lambda call: call.data in ["edit_healthy", "edit_dopamine"])
