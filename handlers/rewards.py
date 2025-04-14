@@ -220,6 +220,8 @@ def register_reward_handlers(bot, user_data):
 
     @bot.callback_query_handler(func=lambda call: call.data.startswith("edit_"))
     def handle_edit_category(call):
+        user_id = str(call.from_user.id)
+        category = call.data.replace("edit_", "")
         if category in ["basic", "medium"]:
             # Выбор подкатегории
             markup = InlineKeyboardMarkup()
