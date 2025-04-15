@@ -166,7 +166,7 @@ def register_reward_handlers(bot, user_data):
                 model="gpt-3.5-turbo",
                 messages=[{"role": "user", "content": prompt}]
             )
-            raw_lines = response.choices[0].message["content"].strip().split("\n")
+            raw_lines = response.choices[0].message.content.strip().split("\n")
             suggestions = [line.lstrip("0123456789. ").strip() for line in raw_lines if line.strip()]
             ai_suggestions[user_id] = suggestions
     
