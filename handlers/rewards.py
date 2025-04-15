@@ -1,11 +1,11 @@
 from telebot.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
-import openai
+from openai import OpenAI
 import random
 import os
 import json
 from storage import save_user_data
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 user_states = {}
 
@@ -162,7 +162,7 @@ def register_reward_handlers(bot, user_data):
             )
     
         try:
-            response = openai.ChatCompletion.create(
+            response = client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[{"role": "user", "content": prompt}]
             )
