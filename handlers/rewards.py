@@ -212,10 +212,12 @@ def register_reward_handlers(bot, user_data):
     def start_edit_reward(message):
         user_id = str(message.from_user.id)
         user_states[user_id] = {"step": "choose_category"}
-        
+    
         markup = InlineKeyboardMarkup()
         markup.add(InlineKeyboardButton("🟢 Базовые", callback_data="edit_basic"))
         markup.add(InlineKeyboardButton("🟡 Средние", callback_data="edit_medium"))
+        markup.add(InlineKeyboardButton("🟣 Супернаграды", callback_data="edit_super"))
+    
         bot.send_message(message.chat.id, "Выберите категорию награды:", reply_markup=markup)
 
     @bot.callback_query_handler(func=lambda call: call.data.startswith("edit_"))
@@ -236,9 +238,9 @@ def register_reward_handlers(bot, user_data):
             )
     
             user_states[user_id] = {"step": "choose_sub", "category": category}
-            return  # ВАЖНО! Чтоб дальше код не шёл
+            return
     
-        # else — для супернаграды
+        # super category
         rewards = user_data.get(user_id, {}).get("rewards", {}).get("super", [])
     
         if not rewards:
@@ -251,7 +253,7 @@ def register_reward_handlers(bot, user_data):
             call.message.chat.id,
             f"Вот список супернаград:\n\n{reward_list}\n\nНапиши номер награды, которую хочешь удалить."
         )
-        user_states[user_id].update({"step": "await_number", "key": "super"})
+        user_states[user_id] = {"step": "await_number", "key": "super"}
 
     @bot.callback_query_handler(func=lambda call: call.data in ["edit_healthy", "edit_dopamine"])
     def handle_edit_sub(call):
@@ -259,6 +261,10 @@ def register_reward_handlers(bot, user_data):
         sub = call.data.replace("edit_", "")
         state = user_states.get(user_id, {})
         category = state.get("category")
+    
+        if not category:
+            bot.send_message(call.message.chat.id, "Ошибка: не выбрана категория.")
+            return
     
         key = f"{category}_{sub}"
         rewards = user_data.get(user_id, {}).get("rewards", {}).get(key, [])
@@ -269,8 +275,11 @@ def register_reward_handlers(bot, user_data):
             return
     
         reward_list = "\n".join([f"{i+1}. {r}" for i, r in enumerate(rewards)])
-        bot.send_message(call.message.chat.id, f"Вот список наград:\n{reward_list}\n\nНапиши номер награды, которую хочешь удалить.")
-        
+        bot.send_message(
+            call.message.chat.id,
+            f"Вот список наград:\n{reward_list}\n\nНапиши номер награды, которую хочешь удалить."
+        )
+    
         user_states[user_id].update({"step": "await_number", "key": key})
 
     @bot.message_handler(func=lambda message: str(message.from_user.id) in user_states and user_states[str(message.from_user.id)]["step"] == "await_number")
