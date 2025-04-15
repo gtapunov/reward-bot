@@ -135,8 +135,32 @@ def register_reward_handlers(bot, user_data):
     def send_ai_suggestions(message: Message):
         user_id = str(message.chat.id)
         category = user_data[user_id]["selected_category"]
-        prompt = "Придумай 3 короткие награды, которые человек может себе позволить после фокус-сессии. Только список, без пояснений."
-
+        subcategory = user_data[user_id].get("selected_subcategory")
+    
+        if category == "super":
+            prompt = (
+                "Придумай 3 существенные награды, на которые пользователь у нас копит 30 фокусных сессий по 30 минут. "
+                "Это должно быть что-то важное и классное. "
+                "Формат: просто список без номеров, коротко и по делу. Пример: Заказать любимую еду, Организовать мини-трип, Купить что-то, что всегда откладывал 'на потом'."
+            )
+        else:
+            time_limit = "5 минут" if category == "basic" else "20 минут"
+            tone = "здоровые незалипательные" if subcategory == "healthy" else "залипательные"
+            example = (
+                "Пример: Выбрать 1 случайную статью в Википедии и узнать что-то странное, "
+                "Добавить 1 идею в список 'что хочу попробовать в жизни', "
+                "Сделать лёгкую растяжку шеи"
+            ) if subcategory == "healthy" else (
+                "Пример: Включить любимый трек на максимум, "
+                "Посмотреть 1 мем-подборку (но только 5 мин)"
+            )
+    
+            prompt = (
+                f"Придумай 3 короткие {tone} награды, которые человек может позволить себе после 30 минут фокусной работы. "
+                f"Время потребления не должно занимать больше {time_limit} (время перерыва). "
+                f"Формат: просто список без номеров, коротко и по делу. {example}"
+            )
+    
         try:
             response = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",
@@ -145,7 +169,7 @@ def register_reward_handlers(bot, user_data):
             raw_lines = response.choices[0].message["content"].strip().split("\n")
             suggestions = [line.lstrip("0123456789. ").strip() for line in raw_lines if line.strip()]
             ai_suggestions[user_id] = suggestions
-
+    
             text = "\n".join(f"{i+1}. {s}" for i, s in enumerate(suggestions))
             markup = InlineKeyboardMarkup()
             for i in range(3):
