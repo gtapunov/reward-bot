@@ -220,7 +220,7 @@ def register_reward_handlers(bot, user_data):
     
         bot.send_message(message.chat.id, "Выберите категорию награды:", reply_markup=markup)
 
-    @bot.callback_query_handler(func=lambda call: call.data.startswith("edit_"))
+    @bot.callback_query_handler(func=lambda call: call.data in ["edit_basic", "edit_medium", "edit_super"])
     def handle_edit_category(call):
         user_id = str(call.from_user.id)
         category = call.data.replace("edit_", "")
