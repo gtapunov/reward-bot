@@ -302,6 +302,50 @@ def register_reward_handlers(bot, user_data):
         
         user_states.pop(user_id, None)
 
+    @bot.message_handler(commands=["buysuper"])
+    def buy_super_reward(message: Message):
+        user_id = str(message.from_user.id)
+        points = user_data.get(user_id, {}).get("focus_points", 0)
+        rewards = user_data.get(user_id, {}).get("rewards", {}).get("super", [])
+    
+        if not rewards:
+            bot.reply_to(message, "❗️ У тебя пока нет супернаград. Добавь их через /addreward")
+            return
+    
+        text = f"⭐ У тебя {points} Focus Points.\n\nСписок супернаград:\n"
+        text += "\n".join(f"{i+1}. {r}" for i, r in enumerate(rewards))
+        text += "\n\nСтоимость любой награды — 30 Focus Points.\nКакую награду хочешь купить? Напиши номер."
+    
+        user_states[user_id] = {"step": "await_buy_super", "rewards": rewards}
+        bot.send_message(message.chat.id, text)
+
+    @bot.message_handler(func=lambda message: str(message.from_user.id) in user_states and user_states[str(message.from_user.id)]["step"] == "await_buy_super")
+    def handle_buy_super(message: Message):
+        user_id = str(message.from_user.id)
+        state = user_states[user_id]
+        rewards = state["rewards"]
+        points = user_data.get(user_id, {}).get("focus_points", 0)
+    
+        try:
+            index = int(message.text.strip()) - 1
+            if index < 0 or index >= len(rewards):
+                bot.reply_to(message, "❌ Неверный номер награды.")
+                return
+    
+            if points < 30:
+                bot.reply_to(message, f"⚠️ Недостаточно Focus Points! У тебя только {points}.")
+                return
+    
+            reward = rewards[index]
+            user_data[user_id]["focus_points"] = points - 30
+            save_user_data(user_data)
+    
+            bot.reply_to(message, f"🏆 Ты купил супернаграду: {reward}!\nОстаток Focus Points: {points - 30}")
+        except ValueError:
+            bot.reply_to(message, "❌ Введи, пожалуйста, номер награды.")
+        
+        user_states.pop(user_id, None)
+
 def pick_random_reward(user_data, user_id, count):
     """
     Выбирает случайную награду в зависимости от номера помидора.
